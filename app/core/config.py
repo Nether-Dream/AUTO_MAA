@@ -136,6 +136,7 @@ class AppConfig:
         self.global_config = GlobalConfig()
         self.queue_config = QueueConfig()
         self.maa_config = MaaConfig()
+        self.maa_user_config = MaaUserConfig()
 
         qconfig.load(self.config_path, self.global_config)
 
@@ -416,6 +417,59 @@ class AppConfig:
                 config_list.append(["Queue", json_file])
 
         return config_list
+
+    def search_member(self) -> Dict[str, Dict[str, Union[str, Path, dict]]]:
+        """搜索所有脚本实例"""
+
+        member_dict = {}
+
+        if (Config.app_path / "config/MaaConfig").exists():
+            for subdir in (Config.app_path / "config/MaaConfig").iterdir():
+                if subdir.is_dir():
+                    with (subdir / "config.json").open("r", encoding="utf-8") as f:
+                        info = json.load(f)
+                    member_dict[subdir.name] = {
+                        "Type": "Maa",
+                        "Path": subdir,
+                        "Data": info,
+                    }
+
+        return {
+            k: v for k, v in sorted(member_dict.items(), key=lambda x: int(x[0][3:]))
+        }
+
+    def search_queue(self) -> Dict[str, Dict[str, Union[Path, dict]]]:
+        """搜索所有调度队列实例"""
+
+        queue_dict = {}
+
+        if (Config.app_path / "config/QueueConfig").exists():
+            for json_file in (Config.app_path / "config/QueueConfig").glob("*.json"):
+                with json_file.open("r", encoding="utf-8") as f:
+                    info = json.load(f)
+                queue_dict[json_file.stem] = {
+                    "Path": json_file,
+                    "Data": info,
+                }
+
+        return {
+            k: v for k, v in sorted(queue_dict.items(), key=lambda x: int(x[0][5:]))
+        }
+
+    def change_queue(self, old: str, new: str) -> None:
+        """修改调度队列配置文件的队列参数"""
+
+        if (self.app_path / "config/QueueConfig").exists():
+            for json_file in (self.app_path / "config/QueueConfig").glob("*.json"):
+                with json_file.open("r", encoding="utf-8") as f:
+                    data = json.load(f)
+
+                for i in range(10):
+                    if data["Queue"][f"Member_{i+1}"] == old:
+                        data["Queue"][f"Member_{i+1}"] = new
+
+                with json_file.open("w", encoding="utf-8") as f:
+                    json.dump(data, f, ensure_ascii=False, indent=4)
 
     def open_database(self, mode: str, index: str = None) -> None:
         """打开数据库"""
@@ -711,60 +765,6 @@ class AppConfig:
             key, {"Time": "0000-00-00 00:00", "History": "暂无历史运行记录"}
         )
 
-    def clear_maa_config(self) -> None:
-        """清空MAA配置"""
-
-        self.maa_config.set(self.maa_config.MaaSet_Name, "")
-        self.maa_config.set(self.maa_config.MaaSet_Path, ".")
-        self.maa_config.set(self.maa_config.RunSet_TaskTransitionMethod, "ExitEmulator")
-        self.maa_config.set(self.maa_config.RunSet_ProxyTimesLimit, 0)
-        self.maa_config.set(self.maa_config.RunSet_AnnihilationTimeLimit, 40)
-        self.maa_config.set(self.maa_config.RunSet_RoutineTimeLimit, 10)
-        self.maa_config.set(self.maa_config.RunSet_RunTimesLimit, 3)
-        self.maa_config.set(self.maa_config.RunSet_AnnihilationWeeklyLimit, False)
-        self.maa_config.set(self.maa_config.MaaSet_Name, "")
-        self.maa_config.set(self.maa_config.MaaSet_Name, "")
-        self.maa_config.set(self.maa_config.MaaSet_Name, "")
-
-    def clear_queue_config(self) -> None:
-        """清空队列配置"""
-
-        self.queue_config.set(self.queue_config.queueSet_Name, "")
-        self.queue_config.set(self.queue_config.queueSet_Enabled, False)
-        self.queue_config.set(self.queue_config.queueSet_AfterAccomplish, "None")
-
-        self.queue_config.set(self.queue_config.time_TimeEnabled_0, False)
-        self.queue_config.set(self.queue_config.time_TimeSet_0, "00:00")
-        self.queue_config.set(self.queue_config.time_TimeEnabled_1, False)
-        self.queue_config.set(self.queue_config.time_TimeSet_1, "00:00")
-        self.queue_config.set(self.queue_config.time_TimeEnabled_2, False)
-        self.queue_config.set(self.queue_config.time_TimeSet_2, "00:00")
-        self.queue_config.set(self.queue_config.time_TimeEnabled_3, False)
-        self.queue_config.set(self.queue_config.time_TimeSet_3, "00:00")
-        self.queue_config.set(self.queue_config.time_TimeEnabled_4, False)
-        self.queue_config.set(self.queue_config.time_TimeSet_4, "00:00")
-        self.queue_config.set(self.queue_config.time_TimeEnabled_5, False)
-        self.queue_config.set(self.queue_config.time_TimeSet_5, "00:00")
-        self.queue_config.set(self.queue_config.time_TimeEnabled_6, False)
-        self.queue_config.set(self.queue_config.time_TimeSet_6, "00:00")
-        self.queue_config.set(self.queue_config.time_TimeEnabled_7, False)
-        self.queue_config.set(self.queue_config.time_TimeSet_7, "00:00")
-        self.queue_config.set(self.queue_config.time_TimeEnabled_8, False)
-        self.queue_config.set(self.queue_config.time_TimeSet_8, "00:00")
-        self.queue_config.set(self.queue_config.time_TimeEnabled_9, False)
-        self.queue_config.set(self.queue_config.time_TimeSet_9, "00:00")
-
-        self.queue_config.set(self.queue_config.queue_Member_1, "禁用")
-        self.queue_config.set(self.queue_config.queue_Member_2, "禁用")
-        self.queue_config.set(self.queue_config.queue_Member_3, "禁用")
-        self.queue_config.set(self.queue_config.queue_Member_4, "禁用")
-        self.queue_config.set(self.queue_config.queue_Member_5, "禁用")
-        self.queue_config.set(self.queue_config.queue_Member_6, "禁用")
-        self.queue_config.set(self.queue_config.queue_Member_7, "禁用")
-        self.queue_config.set(self.queue_config.queue_Member_8, "禁用")
-        self.queue_config.set(self.queue_config.queue_Member_9, "禁用")
-        self.queue_config.set(self.queue_config.queue_Member_10, "禁用")
-
 
 class UrlListValidator(ConfigValidator):
     """Url list validator"""
@@ -916,11 +916,47 @@ class QueueConfig(QConfig):
     queue_Member_9 = OptionsConfigItem("Queue", "Member_9", "禁用")
     queue_Member_10 = OptionsConfigItem("Queue", "Member_10", "禁用")
 
+    def clear(self) -> None:
+        """清空队列配置"""
+
+        self.set(self.queueSet_Name, "")
+        self.set(self.queueSet_Enabled, False)
+        self.set(self.queueSet_AfterAccomplish, "None")
+
+        self.set(self.time_TimeEnabled_0, False)
+        self.set(self.time_TimeSet_0, "00:00")
+        self.set(self.time_TimeEnabled_1, False)
+        self.set(self.time_TimeSet_1, "00:00")
+        self.set(self.time_TimeEnabled_2, False)
+        self.set(self.time_TimeSet_2, "00:00")
+        self.set(self.time_TimeEnabled_3, False)
+        self.set(self.time_TimeSet_3, "00:00")
+        self.set(self.time_TimeEnabled_4, False)
+        self.set(self.time_TimeSet_4, "00:00")
+        self.set(self.time_TimeEnabled_5, False)
+        self.set(self.time_TimeSet_5, "00:00")
+        self.set(self.time_TimeEnabled_6, False)
+        self.set(self.time_TimeSet_6, "00:00")
+        self.set(self.time_TimeEnabled_7, False)
+        self.set(self.time_TimeSet_7, "00:00")
+        self.set(self.time_TimeEnabled_8, False)
+        self.set(self.time_TimeSet_8, "00:00")
+        self.set(self.time_TimeEnabled_9, False)
+        self.set(self.time_TimeSet_9, "00:00")
+
+        self.set(self.queue_Member_1, "禁用")
+        self.set(self.queue_Member_2, "禁用")
+        self.set(self.queue_Member_3, "禁用")
+        self.set(self.queue_Member_4, "禁用")
+        self.set(self.queue_Member_5, "禁用")
+        self.set(self.queue_Member_6, "禁用")
+        self.set(self.queue_Member_7, "禁用")
+        self.set(self.queue_Member_8, "禁用")
+        self.set(self.queue_Member_9, "禁用")
+        self.set(self.queue_Member_10, "禁用")
+
 
 class MaaConfig(QConfig):
-    def __init__(self):
-        super().__init__()
-
     """MAA配置"""
 
     MaaSet_Name = ConfigItem("MaaSet", "Name", "")
@@ -953,6 +989,63 @@ class MaaConfig(QConfig):
     RunSet_AnnihilationWeeklyLimit = ConfigItem(
         "RunSet", "AnnihilationWeeklyLimit", False, BoolValidator()
     )
+
+    def clear(self) -> None:
+        """清空MAA配置"""
+
+        self.set(self.MaaSet_Name, "")
+        self.set(self.MaaSet_Path, ".")
+        self.set(self.RunSet_TaskTransitionMethod, "ExitEmulator")
+        self.set(self.RunSet_ProxyTimesLimit, 0)
+        self.set(self.RunSet_AnnihilationTimeLimit, 40)
+        self.set(self.RunSet_RoutineTimeLimit, 10)
+        self.set(self.RunSet_RunTimesLimit, 3)
+        self.set(self.RunSet_AnnihilationWeeklyLimit, False)
+        self.set(self.MaaSet_Name, "")
+        self.set(self.MaaSet_Name, "")
+        self.set(self.MaaSet_Name, "")
+
+
+class MaaUserConfig(QConfig):
+    """MAA用户配置"""
+
+    Info_Name = ConfigItem("Info", "Name", "新用户")
+    Info_Id = ConfigItem("Info", "Id", "")
+    Info_Server = ConfigItem("Info", "Server", "官服")
+    Info_RemainedDay = ConfigItem("Info", "RemainedDay", -1, RangeValidator(-1, 1024))
+    Info_Status = ConfigItem("Info", "Status", True, BoolValidator())
+    Data_LastProxyDate = ConfigItem("Data", "LastProxyDate", "2000-01-01")
+    Info_GameId = ConfigItem("Info", "GameId", "1-7")
+    Info_GameId_1 = ConfigItem("Info", "GameId_1", "-")
+    Info_GameId_2 = ConfigItem("Info", "GameId_2", "-")
+    Info_Routine = ConfigItem("Info", "Routine", False, BoolValidator())
+    Info_Annihilation = ConfigItem("Info", "Annihilation", False, BoolValidator())
+    Info_Infrastructure = ConfigItem("Info", "Infrastructure", False, BoolValidator())
+    Info_Password = ConfigItem("Info", "Password", "未设置")
+    Info_Notes = ConfigItem("Info", "Notes", "无")
+    Data_Numb = ConfigItem("Data", "Numb", 0, RangeValidator(0, 1024))
+    Info_Mode = OptionsConfigItem(
+        "Info", "Mode", "简洁", OptionsValidator(["简洁", "详细"])
+    )
+
+    def clear(self) -> None:
+
+        self.set(self.Info_Name, "新用户")
+        self.set(self.Info_Id, "")
+        self.set(self.Info_Server, "官服")
+        self.set(self.Info_RemainedDay, -1)
+        self.set(self.Info_Status, True)
+        self.set(self.Data_LastProxyDate, "2000-01-01")
+        self.set(self.Info_GameId, "1-7")
+        self.set(self.Info_GameId_1, "-")
+        self.set(self.Info_GameId_2, "-")
+        self.set(self.Info_Routine, False)
+        self.set(self.Info_Annihilation, False)
+        self.set(self.Info_Infrastructure, False)
+        self.set(self.Info_Password, "未设置")
+        self.set(self.Info_Notes, "无")
+        self.set(self.Data_Numb, 0)
+        self.set(self.Info_Mode, "简洁")
 
 
 Config = AppConfig()

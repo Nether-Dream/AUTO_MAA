@@ -53,21 +53,19 @@ class _MainTimer(QWidget):
         """定时启动代理任务"""
 
         # 获取定时列表
-        queue_list = self.search_queue()
+        queue_dict = Config.search_queue()
 
-        for i in queue_list:
+        for name, info in queue_dict.items():
 
-            name, info = i
-
-            if not info["QueueSet"]["Enabled"]:
+            if not info["Data"]["QueueSet"]["Enabled"]:
                 continue
 
             history = Config.get_history(name)
 
             time_set = [
-                info["Time"][f"TimeSet_{_}"]
+                info["Data"]["Time"][f"TimeSet_{_}"]
                 for _ in range(10)
-                if info["Time"][f"TimeEnabled_{_}"]
+                if info["Data"]["Time"][f"TimeEnabled_{_}"]
             ]
             # 按时间调起代理任务
             curtime = datetime.now().strftime("%Y-%m-%d %H:%M")
@@ -78,7 +76,7 @@ class _MainTimer(QWidget):
             ):
 
                 logger.info(f"定时任务：{name}")
-                TaskManager.add_task("自动代理_新调度台", name, info)
+                TaskManager.add_task("自动代理_新调度台", name, info["Data"])
 
     def set_silence(self):
         """设置静默模式"""
@@ -108,19 +106,6 @@ class _MainTimer(QWidget):
                     if not self.if_FailSafeException:
                         logger.warning(f"FailSafeException: {e}")
                         self.if_FailSafeException = True
-
-    def search_queue(self) -> list:
-        """搜索所有调度队列实例"""
-
-        queue_list = []
-
-        if (Config.app_path / "config/QueueConfig").exists():
-            for json_file in (Config.app_path / "config/QueueConfig").glob("*.json"):
-                with json_file.open("r", encoding="utf-8") as f:
-                    info = json.load(f)
-                queue_list.append([json_file.stem, info])
-
-        return queue_list
 
 
 MainTimer = _MainTimer()

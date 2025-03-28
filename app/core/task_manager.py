@@ -91,7 +91,7 @@ class Task(QThread):
 
         else:
 
-            self.member_dict = self.search_member()
+            self.member_dict = Config.search_member()
             self.task_dict = [
                 [value, "等待"]
                 for _, value in self.info["Queue"].items()
@@ -122,11 +122,11 @@ class Task(QThread):
                 logger.info(f"任务开始：{self.task_dict[i][0]}")
                 self.push_info_bar.emit("info", "任务开始", self.task_dict[i][0], 3000)
 
-                if self.member_dict[self.task_dict[i][0]][0] == "Maa":
+                if self.member_dict[self.task_dict[i][0]]["Type"] == "Maa":
 
                     self.task = MaaManager(
                         self.mode[0:4],
-                        self.member_dict[self.task_dict[i][0]][1],
+                        self.member_dict[self.task_dict[i][0]]["Path"],
                     )
 
                     self.task.question.connect(self.question.emit)
@@ -160,19 +160,6 @@ class Task(QThread):
                 self.push_info_bar.emit("info", "任务完成", self.task_dict[i][0], 3000)
 
             self.accomplish.emit(self.logs)
-
-    def search_member(self) -> dict:
-        """搜索所有脚本实例及其路径"""
-
-        member_dict = {}
-
-        if (Config.app_path / "config/MaaConfig").exists():
-            for subdir in (Config.app_path / "config/MaaConfig").iterdir():
-                if subdir.is_dir():
-
-                    member_dict[subdir.name] = ["Maa", subdir]
-
-        return member_dict
 
     def task_accomplish(self, name: str, log: dict):
         """保存保存任务结果"""
